@@ -1,0 +1,37 @@
+[
+  {
+    "id": "100_points",
+    "label": "🏆 100 Points",
+    "type": "points",
+    "milestone": 100,
+    "description": "Reach 100 total points."
+  },
+  {
+    "id": "500_points",
+    "label": "🏅 500 Points",
+    "type": "points",
+    "milestone": 500,
+    "description": "Reach 500 total points."
+  },
+  {
+    "id": "1000_points",
+    "label": "🥇 1000 Points",
+    "type": "points",
+    "milestone": 1000,
+    "description": "Reach 1000 total points."
+  },
+  {
+    "id": "task_master",
+    "label": "🎯 Task Master",
+    "type": "tasks_completed",
+    "milestone": 50,
+    "description": "Complete 50 tasks."
+  },
+  {
+    "id": "early_bird",
+    "label": "🌅 Early Bird",
+    "type": "early_task",
+    "milestone": 1,
+    "description": "Complete a task before 8:00 AM."
+  }
+]

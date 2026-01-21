@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DisciplineBuddy</title>
+
+    <!-- Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!--  Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- 3. TAILWIND CSS + Visual Config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6', // Albastru principal
+                            600: '#2563eb',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(59, 130, 246, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { background-color: #f8fafc; color: #0f172a; }
+        /* Smooth loading animation */
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="antialiased">
+
+<div id="root" class="min-h-screen flex flex-col"></div>
+
+<!-- React Dependencies -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Utilities -->
+<script type="text/babel" src="./utils/api.js"></script>
+
+<!-- Pages (Acestea trebuie să existe în folderele lor) -->
+<script type="text/babel" src="./pages/LoginPage.jsx"></script>
+<script type="text/babel" src="./pages/HomePage.jsx"></script>
+<script type="text/babel" src="./pages/TasksPage.jsx"></script>
+<script type="text/babel" src="./pages/ProfilePage.jsx"></script>
+
+<!-- Router -->
+<script type="text/babel" src="./router/Router.jsx"></script>
+
+<!-- Init -->
+<script type="text/babel">
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<Router />);
+</script>
+</body>
+</html>

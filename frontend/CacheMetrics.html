@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Cache Metrics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2.2rem; margin-bottom: 5px; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .metric {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .metric h3 {
+            color: #667eea;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .metric-value { font-size: 2rem; font-weight: bold; color: #333; }
+        .metric-unit { color: #999; font-size: 0.85rem; margin-top: 5px; }
+        .chart-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .chart-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        .chart-wrapper { position: relative; height: 300px; }
+        .table-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .table-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        table th {
+            background: #f5f5f5;
+            color: #667eea;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #667eea;
+        }
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        table tr:hover { background: #f9f9f9; }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-hit { background: #d4edda; color: #155724; }
+        .badge-miss { background: #f8d7da; color: #721c24; }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Redis Cache Metrics</h1>
+            <p>Real-time cache performance</p>
+        </div>
+
+        <div class="controls">
+            <button onclick="refreshMetrics()">🔄 Refresh</button>
+            <button onclick="clearData()">🗑️ Clear</button>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <h3>Hit Ratio</h3>
+                <div class="metric-value" id="hitRatio">0%</div>
+                <div class="metric-unit">Success rate</div>
+            </div>
+            <div class="metric">
+                <h3>Total Hits</h3>
+                <div class="metric-value" id="totalHits">0</div>
+                <div class="metric-unit">Requests</div>
+            </div>
+            <div class="metric">
+                <h3>Total Misses</h3>
+                <div class="metric-value" id="totalMisses">0</div>
+                <div class="metric-unit">Requests</div>
+            </div>
+            <div class="metric">
+                <h3>Hit Latency</h3>
+                <div class="metric-value" id="hitLatency">0ms</div>
+                <div class="metric-unit">Avg time</div>
+            </div>
+            <div class="metric">
+                <h3>Miss Latency</h3>
+                <div class="metric-value" id="missLatency">0ms</div>
+                <div class="metric-unit">Avg time</div>
+            </div>
+            <div class="metric">
+                <h3>Improvement</h3>
+                <div class="metric-value" id="improvement">0%</div>
+                <div class="metric-unit">Faster</div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h2>📊 Hit vs Miss Distribution</h2>
+            <div class="chart-wrapper">
+                <canvas id="ratioChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h2>⚡ Latency Comparison</h2>
+            <div class="chart-wrapper">
+                <canvas id="latencyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <h2>📋 Recent Operations (Last 50)</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Latency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opsTable">
+                        <tr><td colspan="4" style="text-align: center; color: #999;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Last updated: <span id="lastUpdate">Never</span></p>
+            <p style="margin-top: 10px;">Redis Caching Dashboard</p>
+        </div>
+    </div>
+
+    <script>
+        let metricsData = { hits: 0, misses: 0, hitLatency: 0, missLatency: 0, operations: [] };
+        let ratioChart, latencyChart;
+
+        function initCharts() {
+            const ratioCtx = document.getElementById('ratioChart').getContext('2d');
+            ratioChart = new Chart(ratioCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hits', 'Misses'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+            latencyChart = new Chart(latencyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Redis (Hit)', 'MongoDB (Miss)'],
+                    datasets: [{
+                        label: 'Latency (ms)',
+                        data: [0, 0],
+                        backgroundColor: ['#667eea', '#764ba2'],
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        async function refreshMetrics() {
+            try {
+                const res = await fetch('http://localhost:3000/api/metrics');
+                const json = await res.json();
+                metricsData = {
+                    hits: json.totalHits || 0,
+                    misses: json.totalMisses || 0,
+                    hitLatency: json.avgHitLatency || 0,
+                    missLatency: json.avgMissLatency || 0,
+                    operations: json.recentOperations || []
+                };
+
+                const total = metricsData.hits + metricsData.misses;
+                const ratio = total > 0 ? Math.round((metricsData.hits / total) * 100) : 0;
+                const improvement = metricsData.missLatency > 0 ?
+                    Math.round(((metricsData.missLatency - metricsData.hitLatency) / metricsData.missLatency) * 100) : 0;
+
+                document.getElementById('hitRatio').textContent = ratio + '%';
+                document.getElementById('totalHits').textContent = metricsData.hits;
+                document.getElementById('totalMisses').textContent = metricsData.misses;
+                document.getElementById('hitLatency').textContent = metricsData.hitLatency + 'ms';
+                document.getElementById('missLatency').textContent = metricsData.missLatency + 'ms';
+                document.getElementById('improvement').textContent = improvement + '%';
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+                if (ratioChart && latencyChart) {
+                    ratioChart.data.datasets[0].data = [metricsData.hits, metricsData.misses];
+                    ratioChart.update();
+                    latencyChart.data.datasets[0].data = [metricsData.hitLatency, metricsData.missLatency];
+                    latencyChart.update();
+                }
+
+                updateTable();
+            } catch (e) {
+                console.error('Error:', e);
+            }
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('opsTable');
+            if (metricsData.operations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No operations</td></tr>';
+                return;
+            }
+            // Show last 50 operations, most recent first
+            const recentOps = metricsData.operations.slice(-50).reverse();
+            tbody.innerHTML = recentOps.map(op => `
+                <tr>
+                    <td>${new Date(op.timestamp).toLocaleTimeString()}</td>
+                    <td>${op.type || 'N/A'}</td>
+                    <td><span class="badge ${op.status === 'HIT' ? 'badge-hit' : 'badge-miss'}">${op.status || '?'}</span></td>
+                    <td>${op.latency || '0'}ms</td>
+                </tr>
+            `).join('');
+        }
+
+        function clearData() {
+            if (confirm('Clear all metrics data?')) {
+                fetch('http://localhost:3000/api/metrics/clear', { method: 'POST' })
+                    .then(() => {
+                        metricsData = { hits: 0, misses: 0, hitLatency: 0, missLatency: 0, operations: [] };
+                        refreshMetrics();
+                    })
+                    .catch(e => console.error('Clear failed:', e));
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            refreshMetrics();
+        });
+    </script>
+</body>
+</html>
